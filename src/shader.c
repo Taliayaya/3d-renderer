@@ -131,6 +131,13 @@ void shader_set_float(Shader *self, const char *name, float value)
     glUniform1f(glGetUniformLocation(self->ID, name), value);
 }
 
+void shader_set_mat4(Shader *self, const char *name, float value[4][4])
+{
+    int location = glGetUniformLocation(self->ID, name);
+    glUniformMatrix4fv(location, 1, GL_TRUE, &value[0][0]);
+}
+
+
 void shader_set_vec4f(Shader *self, const char *name, float x, float y, float z,
         float w)
 {

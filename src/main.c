@@ -8,8 +8,9 @@
 # include "../include/shader.h"
 # define STB_IMAGE_IMPLEMENTATION
 # include "../include/stb_image.h"
-
-
+# include "../include/math/matrix.h"
+# include "../include/math/vec4.h"
+# include "../include/math/vec3.h"
 
 
 // window settings
@@ -171,6 +172,9 @@ int main()
     // unbind the VA0 so that others dont modify it
     glBindVertexArray(0);
 
+    Vec3 axis = {0, 0, 1};
+    Vec3 translate = {.5, -.5, .0};
+    
     while (!glfwWindowShouldClose(window))
     {
         // begin frame
@@ -183,12 +187,18 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         float timeValue = glfwGetTime();
+
+        Mat4 *trans = new_mat4_id(1);
+        trans = mat4_rotate(trans, timeValue, &axis);
+        trans = mat4_translate(trans, &translate);
+
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
 
         shader_use(shader);
         shader_set_vec4f(shader, "ourColor", 0.0f, greenValue, 0.0f, 1.0f);
         shader_set_float(shader, "offset", 0.f);
         shader_set_int(shader, "texture1", 1);
+        shader_set_mat4(shader, "transform", trans->arr);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture0);

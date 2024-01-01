@@ -27,6 +27,7 @@ void shader_set_int(Shader *self, const char *name, int value);
 void shader_set_float(Shader *self, const char *name, float value);
 void shader_set_vec4f(Shader *self, const char *name, float x, float y, float z,
         float w);
+void shader_set_mat4(Shader *self, const char *name, float value[4][4]);
 
 
 # endif
