@@ -10,6 +10,12 @@ Vec3 new_vec3(float x, float y, float z)
     return (Vec3){x, y, z};
 }
 
+void print_vec3(Vec3 *a)
+{
+    printf("{%f, %f, %f}\n",
+            a->x, a->y, a->z);
+}
+
 float vec3_magnitude(Vec3 *vec)
 {
     return sqrt(vec->x * vec->x +
@@ -24,6 +30,12 @@ void vec3_negate(Vec3 *vec)
     vec->z = -vec->z;
 }
 
+Vec3 vec3_negated(Vec3 *vec)
+{
+    return (Vec3){-vec->x,
+                  -vec->y,
+                  -vec->z};
+}
 void vec3_normalize(Vec3 *vec)
 {
     float magn = vec3_magnitude(vec);
@@ -39,6 +51,20 @@ Vec3 vec3_normalized(Vec3 *vec)
                   vec->y / magn,
                   vec->z / magn};
 
+}
+
+Vec3 vec3_mul(Vec3 *a, float lambda)
+{
+    return (Vec3){a->x * lambda,
+                  a->y * lambda,
+                  a->z * lambda};
+}
+
+Vec3 vec3_add(Vec3 *a, Vec3 *b)
+{
+    return (Vec3){a->x + b->x,
+                  a->y + b->y,
+                  a->z + b->z};
 }
 
 Vec3 vec3_sub(Vec3 *a, Vec3 *b)

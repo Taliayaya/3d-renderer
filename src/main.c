@@ -8,6 +8,7 @@
 # include "../include/shader.h"
 # define STB_IMAGE_IMPLEMENTATION
 # include "../include/stb_image.h"
+# include "../include/math/utils.h"
 # include "../include/math/matrix.h"
 # include "../include/math/vec4.h"
 # include "../include/math/vec3.h"
@@ -32,6 +33,21 @@
 // texture path
 # define TEXTURE_PATH "../textures/"
 
+# define CLAMP(value, low, high)
+
+Camera *camera;
+Vec3 camera_front = {0.f, 0.f, -1.f};
+
+float yaw = -90.f;
+float pitch = 0;
+
+float last_x = WIDTH / 2;
+float last_y = HEIGHT / 2;
+
+float delta_time = 0.f;
+float last_frame = 0.f;
+
+float fov = 45.f;
 
 // called each time the window is resized
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
@@ -39,14 +55,65 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+void mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+    static bool first_mouse = true;
+    // avoid sudden jump when focusing
+    if (first_mouse)
+    {
+        last_x = xpos;
+        last_y = ypos;
+        first_mouse = false;
+    }
+
+    float xoffset = xpos - last_x;
+    float yoffset = ypos - last_y;
+    last_x = xpos;
+    last_y = ypos;
+    
+    camera_process_mouse(camera, xoffset, yoffset, true);
+}
+
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    camera_process_scroll(camera, yoffset);
+}
+
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    enum CameraMovement direction;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        direction = FORWARD;
+        camera_process_keyboard(camera, direction, delta_time);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        direction = BACKWARD;
+        camera_process_keyboard(camera, direction, delta_time);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        direction = LEFT;
+        camera_process_keyboard(camera, direction, delta_time);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        direction = RIGHT;
+        camera_process_keyboard(camera, direction, delta_time);
+    }
 }
 
 int main()
 {
+
+    Vec3 camera_pos = {0, 0, 3.f};
+    Vec3 up = {0, 1.f, 0};
+    camera = new_camera(&camera_pos, &up);
+
 
     stbi_set_flip_vertically_on_load(true);
     glfwInit();
@@ -64,6 +131,7 @@ int main()
     }
     // render window
     glfwMakeContextCurrent(window);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // init glad to call any OpenGL functions
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -73,20 +141,6 @@ int main()
     glEnable(GL_DEPTH_TEST);
     //glViewport(0, 0, WIDTH, HEIGHT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // GL_FILL
-
-
-    // my triangle (no z coord)
-    //float vertices[] = 
-    //{
-    //    // positions          // colors          // texture coords
-    //     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,  1.0f, 1.0f,  // top right
-    //     0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  1.0f, 0.0f,  // bottom right
-    //    -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 1.0f,  0.0f, 0.0f,  // bottom left
-    //    -0.5f,  0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.0f, 1.0f,  // top left
-    //     0.0f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,  0.5f, 1.0f   // top
-
-    //};
-
 
     float vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -144,18 +198,6 @@ int main()
         {-1.3f,  1.0f, -1.5f}
     };
 
-    unsigned int indices[] = 
-    {
-        0, 1, 3,
-        1, 2, 3
-    };
-
-    float texCoords[] = 
-    {
-        0.0f, 0.0f, // low left
-        1.0f, 0.0f, // low right
-        0.5f, 1.0f  // top center
-    };
     unsigned int texture0, texture1;
     glGenTextures(1, &texture0);
     glBindTexture(GL_TEXTURE_2D, texture0);
@@ -192,22 +234,22 @@ int main()
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
-    
-
 
     // register the event for resize
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    // register mouse event
+    glfwSetCursorPosCallback(window, mouse_callback);
+    // register scroll event
+    glfwSetScrollCallback(window, scroll_callback);
+
     unsigned int VBO; // vertex buffer objects
     glGenBuffers(1, &VBO);
 
     unsigned int EBO;
     glGenBuffers(1, &EBO);
 
-
-
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
     
     // copies the previously defined vertex into the buffer's memory
     // size of data in BYTES
@@ -233,21 +275,15 @@ int main()
     // unbind the VA0 so that others dont modify it
     glBindVertexArray(0);
 
-    Vec3 axis = {0.5, 1, 0};
-    Vec3 camera_pos = {0, 0, 3.f};
-    Vec3 camera_target = {0.f, 0.f, 0.f};
-    Vec3 up = {0, 1.f, 0};
-    Camera *camera = new_camera(&camera_pos, &camera_target, &up);
-
     Vec3 rotate_axis = {1.f, .3f, .5f};
 
-    
-    Mat4 *projection = perspective(TO_RAD(45.f), (float)WIDTH / HEIGHT, .1f, 100.f);
-    print_mat4(projection);
-    
     while (!glfwWindowShouldClose(window))
     {
         // begin frame
+        float current_frame = glfwGetTime();
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
         // clear depth buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -258,18 +294,12 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        const float radius = 10.f;
         float timeValue = glfwGetTime();
 
-
-        float camX = sin(timeValue) * radius;
-        float camZ = cos(timeValue) * radius;
-
-        float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-
-        camera->transform.position.x = camX;
-        camera->transform.position.z = camZ;
         Mat4 *view = camera_look_at(camera);
+
+        Mat4 *projection = perspective(TO_RAD(camera->zoom), (float)WIDTH / HEIGHT, .1f, 100.f);
+
 
         shader_use(shader);
         shader_set_int(shader, "texture1", 1);
@@ -298,6 +328,9 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
         glBindVertexArray(9);
+
+        free_mat4(view);
+        free_mat4(projection);
 
 
         // call events and swap buffers

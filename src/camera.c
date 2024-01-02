@@ -1,27 +1,42 @@
 # include "../include/camera.h"
 
-Camera *new_camera(Vec3 *position, Vec3 *target, Vec3 *up)
+Camera *new_camera(Vec3 *position, Vec3 *up)
 {
     Camera *camera = calloc(1, sizeof(Camera));
     if (camera == NULL)
         err(EXIT_FAILURE, "new_camera: Couldn't allocate the camera");
 
-    Vec3 direction = vec3_sub(position, target);
-    vec3_normalize(&direction);
+    camera->world_up = *up;
+    camera->transform.position = *position;
+    camera->zoom = ZOOM;
+    camera->pitch = PITCH;
+    camera->mouse_sensitivity = SENSITIVITY;
+    camera->movement_speed = SPEED;
+    camera->zoom_sensitivity = ZOOM_SENSITIVITY;
+    
+    camera_update_vectors(camera);
 
-    Vec3 right = vec3_cross(up, &direction);
+    return camera;
+}
+
+void camera_update_vectors(Camera *camera)
+{
+    Vec3 direction;
+    direction.x = cos(TO_RAD(camera->yaw)) * cos(TO_RAD(camera->pitch));
+    direction.y = sin(TO_RAD(camera->pitch));
+    direction.z = sin(TO_RAD(camera->yaw)) * cos(TO_RAD(camera->pitch));
+    Vec3 camera_front = vec3_normalized(&direction);
+
+
+    Vec3 right = vec3_cross(&camera->world_up, &direction);
     vec3_normalize(&right);
 
     Vec3 cam_up = vec3_cross(&direction, &right);
     vec3_normalize(&cam_up);
 
-    camera->target = *target;
-    camera->transform.position = *position;
-    camera->transform.forward = direction;
+    camera->transform.forward = camera_front;
     camera->transform.right = right;
     camera->transform.up = cam_up;
-    
-    return camera;
 }
 
 void free_camera(Camera *camera)
@@ -33,14 +48,13 @@ Mat4 *camera_look_at(Camera *camera)
 {
     Vec3 x_axis, y_axis, z_axis;
 
-    z_axis = vec3_sub(&camera->target, &camera->transform.position);
+    z_axis = camera->transform.forward;
     vec3_normalize(&z_axis);
 
-    x_axis = vec3_cross(&z_axis, &camera->transform.up);
+    x_axis = camera->transform.right;
     vec3_normalize(&x_axis);
 
-    y_axis = vec3_cross(&x_axis, &z_axis);
-
+    y_axis = camera->transform.up;
     vec3_negate(&z_axis);
 
     Mat4 *view = new_mat4_id(1.f);
@@ -63,4 +77,54 @@ Mat4 *camera_look_at(Camera *camera)
     view->arr[2][3] = -vec3_dot(&z_axis, &camera->transform.position);
 
     return view;
+}
+
+void camera_process_keyboard(Camera *camera, enum CameraMovement direction, float
+        delta_time)
+{
+    const float velocity = camera->movement_speed * delta_time;
+    if (direction == FORWARD)
+    {
+        Vec3 forw = vec3_mul(&camera->transform.forward, velocity);
+        camera->transform.position = vec3_add(&camera->transform.position, &forw);
+    }
+    if (direction == BACKWARD)
+    {
+        Vec3 forw = vec3_mul(&camera->transform.forward, velocity);
+        camera->transform.position = vec3_sub(&camera->transform.position, &forw);
+    }
+    if (direction == LEFT)
+    {
+        Vec3 right = vec3_mul(&camera->transform.right, velocity);
+        camera->transform.position = vec3_sub(&camera->transform.position,
+                &right);
+    }
+    if (direction == RIGHT)
+    {
+        Vec3 right = vec3_mul(&camera->transform.right, velocity);
+        camera->transform.position = vec3_add(&camera->transform.position,
+                &right);
+    }
+}
+
+void camera_process_mouse(Camera *camera, float xoffset, float yoffset,
+        bool constrain_pitch)
+{
+    xoffset *= camera->mouse_sensitivity;
+    yoffset *= camera->mouse_sensitivity;
+    camera->yaw   -= xoffset;
+    camera->pitch -= yoffset;
+
+    // avoid loss of precision of float
+    camera->yaw = fmod(camera->yaw, 360.f);
+
+    if (constrain_pitch)
+        camera->pitch = clampf(camera->pitch, -89.f, 89.f);
+    camera_update_vectors(camera);
+}
+
+void camera_process_scroll(Camera *camera, float yoffset)
+{
+    camera->zoom -= (float)yoffset * camera->zoom_sensitivity;
+    camera->zoom = clampf(camera->zoom, MIN_FOV, MAX_FOV);
 }
