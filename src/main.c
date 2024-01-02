@@ -11,6 +11,9 @@
 # include "../include/math/matrix.h"
 # include "../include/math/vec4.h"
 # include "../include/math/vec3.h"
+# include "../include/perspective.h"
+# include "../include/transform.h"
+# include "../include/camera.h"
 
 
 // window settings
@@ -44,7 +47,6 @@ void processInput(GLFWwindow *window)
 
 int main()
 {
-    
 
     stbi_set_flip_vertically_on_load(true);
     glfwInit();
@@ -67,20 +69,79 @@ int main()
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         err(EXIT_FAILURE, "Failed to initialize GLAD");
 
+
+    glEnable(GL_DEPTH_TEST);
     //glViewport(0, 0, WIDTH, HEIGHT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // GL_FILL
 
 
     // my triangle (no z coord)
-    float vertices[] = 
-    {
-        // positions          // colors          // texture coords
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,  1.0f, 1.0f,  // top right
-         0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  1.0f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 1.0f,  0.0f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.0f, 1.0f,  // top left
-         0.0f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,  0.5f, 1.0f   // top
+    //float vertices[] = 
+    //{
+    //    // positions          // colors          // texture coords
+    //     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,  1.0f, 1.0f,  // top right
+    //     0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  1.0f, 0.0f,  // bottom right
+    //    -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 1.0f,  0.0f, 0.0f,  // bottom left
+    //    -0.5f,  0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.0f, 1.0f,  // top left
+    //     0.0f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,  0.5f, 1.0f   // top
 
+    //};
+
+
+    float vertices[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+};
+    Vec3 cube_positions[] = {
+        { 0.0f,  0.0f,  0.0f},
+        { 2.0f,  5.0f, -15.0f},
+        {-1.5f, -2.2f, -2.5f},
+        {-3.8f, -2.0f, -12.3f},
+        { 2.4f, -0.4f, -3.5f},
+        {-1.7f,  3.0f, -7.5f},
+        { 1.3f, -2.0f, -2.5f},
+        { 1.5f,  2.0f, -2.5f},
+        { 1.5f,  0.2f, -1.5f},
+        {-1.3f,  1.0f, -1.5f}
     };
 
     unsigned int indices[] = 
@@ -99,10 +160,10 @@ int main()
     glGenTextures(1, &texture0);
     glBindTexture(GL_TEXTURE_2D, texture0);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     int width, height, nrChannels;
@@ -153,31 +214,42 @@ int main()
     // static_draw => data set once, used plenty (our triangle does not change)
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-            GL_STATIC_DRAW);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+    //        GL_STATIC_DRAW);
 
     // tell openGL how to interpret the vertex data in memory
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
             (void *)0);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+    //        (void *)(3 * sizeof(float)));
+    //glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
             (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-            (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
     // unbind the VA0 so that others dont modify it
     glBindVertexArray(0);
 
-    Vec3 axis = {0, 0, 1};
-    Vec3 translate = {.5, -.5, .0};
+    Vec3 axis = {0.5, 1, 0};
+    Vec3 camera_pos = {0, 0, 3.f};
+    Vec3 camera_target = {0.f, 0.f, 0.f};
+    Vec3 up = {0, 1.f, 0};
+    Camera *camera = new_camera(&camera_pos, &camera_target, &up);
+
+    Vec3 rotate_axis = {1.f, .3f, .5f};
+
+    
+    Mat4 *projection = perspective(TO_RAD(45.f), (float)WIDTH / HEIGHT, .1f, 100.f);
+    print_mat4(projection);
     
     while (!glfwWindowShouldClose(window))
     {
         // begin frame
+        // clear depth buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // inputs
         processInput(window);
@@ -186,19 +258,23 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        const float radius = 10.f;
         float timeValue = glfwGetTime();
 
-        Mat4 *trans = new_mat4_id(1);
-        trans = mat4_rotate(trans, timeValue, &axis);
-        trans = mat4_translate(trans, &translate);
+
+        float camX = sin(timeValue) * radius;
+        float camZ = cos(timeValue) * radius;
 
         float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
 
+        camera->transform.position.x = camX;
+        camera->transform.position.z = camZ;
+        Mat4 *view = camera_look_at(camera);
+
         shader_use(shader);
-        shader_set_vec4f(shader, "ourColor", 0.0f, greenValue, 0.0f, 1.0f);
-        shader_set_float(shader, "offset", 0.f);
         shader_set_int(shader, "texture1", 1);
-        shader_set_mat4(shader, "transform", trans->arr);
+        shader_set_mat4(shader, "view", view->arr);
+        shader_set_mat4(shader, "projection", projection->arr);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture0);
@@ -209,7 +285,18 @@ int main()
         glBindVertexArray(VAO);
         //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        for (int i = 0; i < 10; ++i)
+        {
+            Mat4 *model = new_mat4_id(1.f);
+            model = mat4_translate(model, &cube_positions[i]);
+            float angle = 20.f * i * timeValue;
+            model = mat4_rotate(model, TO_RAD(angle), &rotate_axis);
+            shader_set_mat4(shader, "model", model->arr);
+            free_mat4(model);
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         glBindVertexArray(9);
 
 

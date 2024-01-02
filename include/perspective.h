@@ -1,6 +1,10 @@
 # ifndef PERSPECTIVE_H
 # define PERSPECTIVE_H
 
-Mat4 *perspective(float FoV, float aspect, float near, float far);
+# include <math.h>
+
+# include "math/matrix.h"
+
+Mat4 *perspective(float fov, float aspect, float near, float far);
 
 # endif

@@ -62,6 +62,7 @@ Mat4 *mat4_rotate(Mat4 *self, float angle, Vec3 *axis)
     float x, y, z;
     float cos_a = cos(angle);
     float sin_a = sin(angle);
+    vec3_normalize(axis);
     x = axis->x;
     y = axis->y;
     z = axis->z;
@@ -103,6 +104,45 @@ Mat4 *mat4_dot(Mat4 *a, Mat4 *b)
     return res;
 }
 
+// a variant invert specialized for transform matrices
+// do not use if the matrix isnt in a format
+// [ux vx wx tx]
+// [uy vy wy ty]
+// [uz vz wz tz]
+// [ 0  0  0  1]
+
+Mat4 *mat4_transform_invert(Mat4 *a)
+{
+    Mat4 *inv = new_mat4_id(1.f);
+    // create vectors from columns
+    Vec3 u = {a->arr[0][0], a->arr[1][0], a->arr[2][0]};
+    Vec3 v = {a->arr[0][1], a->arr[1][1], a->arr[2][1]};
+    Vec3 w = {a->arr[0][2], a->arr[1][2], a->arr[2][2]};
+    Vec3 t = {a->arr[0][3], a->arr[1][3], a->arr[2][3]};
+
+    // first row
+    inv->arr[0][0] = u.x;
+    inv->arr[0][1] = u.y;
+    inv->arr[0][2] = u.z;
+    inv->arr[0][3] = -vec3_dot(&u, &t);
+
+    // second row
+    inv->arr[1][0] = v.x;
+    inv->arr[1][1] = v.y;
+    inv->arr[1][2] = v.z;
+    inv->arr[1][3] = -vec3_dot(&v, &t);
+
+    // third row
+    inv->arr[2][0] = w.x;
+    inv->arr[2][1] = w.y;
+    inv->arr[2][2] = w.z;
+    inv->arr[2][3] = -vec3_dot(&w, &t);
+
+    // last row is unchanged (0 0 0 1)
+
+    return inv;
+}
+
 Vec4 *mat4_dot_vec4(Mat4 *a, Vec4 *b)
 {
     Vec4 *res = new_null_vec4();
@@ -122,14 +162,31 @@ Vec4 *mat4_dot_vec4(Mat4 *a, Vec4 *b)
     return res;
 }
 
-//int main()
-//{
-//    Mat4 *trans = new_mat4_id(1);
-//    Vec3 translation = {1, 1, 0};
-//    trans = mat4_translate(trans, &translation);
-//    Vec4 vec = {1, 0, 0, 1};
-//    Vec4 *res = mat4_dot_vec4(trans, &vec);
-//
-//    print_mat4(trans);
-//    print_vec4(res);
-//}
+void mat4_transpose(Mat4 *a)
+{
+    for (int i = 0; i < 4; ++i)
+        for (int j = i; j < 4; ++j)
+        {
+            float tmp = a->arr[i][j];
+            a->arr[i][j] = a->arr[j][i];
+            a->arr[j][i] = tmp;
+        }
+}
+
+void mat4_negate(Mat4 *a)
+{
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+            a->arr[i][j] = -a->arr[i][j];
+}
+
+void mat4_transpose_negate(Mat4 *a)
+{
+    for (int i = 0; i < 4; ++i)
+        for (int j = i; j < 4; ++j)
+        {
+            float tmp = a->arr[i][j];
+            a->arr[i][j] = -a->arr[j][i];
+            a->arr[j][i] = -tmp;
+        }
+}
