@@ -14,7 +14,7 @@
 
 # define YAW              -90.f;
 # define PITCH             0.0f;
-# define SPEED             2.5f;
+# define SPEED             10.5f;
 # define SENSITIVITY       0.1f;
 # define ZOOM              45.f;
 # define ZOOM_SENSITIVITY  2.5f;

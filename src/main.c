@@ -4,23 +4,30 @@
 # include <stdlib.h>
 # include <err.h>
 # include <stdbool.h>
+# include <time.h>
 
 # include "../include/shader.h"
-# define STB_IMAGE_IMPLEMENTATION
-# include "../include/stb_image.h"
 # include "../include/math/utils.h"
 # include "../include/math/matrix.h"
 # include "../include/math/vec4.h"
 # include "../include/math/vec3.h"
+
 # include "../include/perspective.h"
 # include "../include/transform.h"
 # include "../include/camera.h"
+# include "../include/texture.h"
+
+// models
+# include "../include/models/cube.h"
+
+// map
+# include "../include/perlin_noise.h"
 
 
 // window settings
 # define WIDTH 800
 # define HEIGHT 600
-# define TITLE "LearnOpenGL"
+# define TITLE "Minecraft"
 
 // opengl settings
 # define MAJOR 3
@@ -34,6 +41,11 @@
 # define TEXTURE_PATH "../textures/"
 
 # define CLAMP(value, low, high)
+
+# define MAP_WIDTH 50
+# define MAP_HEIGHT 50
+
+extern int SEED;
 
 Camera *camera;
 Vec3 camera_front = {0.f, 0.f, -1.f};
@@ -109,13 +121,12 @@ void processInput(GLFWwindow *window)
 
 int main()
 {
+    SEED = time(NULL);
 
     Vec3 camera_pos = {0, 0, 3.f};
     Vec3 up = {0, 1.f, 0};
     camera = new_camera(&camera_pos, &up);
 
-
-    stbi_set_flip_vertically_on_load(true);
     glfwInit();
     // tells opengl which version we want to use
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, MAJOR);
@@ -142,139 +153,45 @@ int main()
     //glViewport(0, 0, WIDTH, HEIGHT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // GL_FILL
 
-    float vertices[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    Vec3 map[MAP_WIDTH * MAP_HEIGHT];
+    for (int i = 0; i < MAP_WIDTH; ++i)
+        for (int j = 0; j < MAP_HEIGHT; ++j)
+        {
+            float y = perlin2d(i, j, 0.07, 10);
+            y = round(lerpf(y, 1, 20));
+            map[i * MAP_HEIGHT + j] = (Vec3){i, y, j};
+        }
 
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    Texture grass_bot, grass_side, grass_top;
 
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-};
-    Vec3 cube_positions[] = {
-        { 0.0f,  0.0f,  0.0f},
-        { 2.0f,  5.0f, -15.0f},
-        {-1.5f, -2.2f, -2.5f},
-        {-3.8f, -2.0f, -12.3f},
-        { 2.4f, -0.4f, -3.5f},
-        {-1.7f,  3.0f, -7.5f},
-        { 1.3f, -2.0f, -2.5f},
-        { 1.5f,  2.0f, -2.5f},
-        { 1.5f,  0.2f, -1.5f},
-        {-1.3f,  1.0f, -1.5f}
-    };
-
-    unsigned int texture0, texture1;
-    glGenTextures(1, &texture0);
-    glBindTexture(GL_TEXTURE_2D, texture0);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(TEXTURE_PATH"container.jpg", &width,
-            &height, &nrChannels, 0);
-    if (!data)
-        err(EXIT_FAILURE, "failed to load texture");
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-            GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
-
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-
-    data = stbi_load(TEXTURE_PATH"awesomeface.png", &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
+    grass_bot = new_texture(TEXTURE_PATH"grass_bot.jpg"); 
+    grass_side = new_texture(TEXTURE_PATH"grass_side.jpg");
+    grass_top = new_texture(TEXTURE_PATH"grass_top.jpg");
 
     // create, attach shaders to the program and link them
     Shader *shader = new_shader(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH);
 
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-
-    // register the event for resize
+        // register the event for resize
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     // register mouse event
     glfwSetCursorPosCallback(window, mouse_callback);
     // register scroll event
     glfwSetScrollCallback(window, scroll_callback);
 
-    unsigned int VBO; // vertex buffer objects
-    glGenBuffers(1, &VBO);
-
     unsigned int EBO;
     glGenBuffers(1, &EBO);
 
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    Cube grass = new_cube();
+    for (int i = CUBE_SIDE1; i <= CUBE_SIDE4; ++i)
+        grass.textures[i] = grass_side.ID;
+    grass.textures[CUBE_BOT] = grass_bot.ID;
+    grass.textures[CUBE_TOP] = grass_top.ID;
+
+    Cube dirt = new_cube();
+    for (int i = CUBE_SIDE1; i <= CUBE_TOP; ++i)
+        dirt.textures[i] = grass_bot.ID;
+
     
-    // copies the previously defined vertex into the buffer's memory
-    // size of data in BYTES
-    // static_draw => data set once, used plenty (our triangle does not change)
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-    //        GL_STATIC_DRAW);
-
-    // tell openGL how to interpret the vertex data in memory
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-            (void *)0);
-
-    glEnableVertexAttribArray(0);
-    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-    //        (void *)(3 * sizeof(float)));
-    //glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-            (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    // unbind the VA0 so that others dont modify it
-    glBindVertexArray(0);
-
     Vec3 rotate_axis = {1.f, .3f, .5f};
 
     while (!glfwWindowShouldClose(window))
@@ -302,32 +219,46 @@ int main()
 
 
         shader_use(shader);
-        shader_set_int(shader, "texture1", 1);
         shader_set_mat4(shader, "view", view->arr);
         shader_set_mat4(shader, "projection", projection->arr);
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture0);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-
+                
         // copy vertices array to buffer for OGL
-        glBindVertexArray(VAO);
         //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        for (int i = 0; i < 10; ++i)
+        for (int i = 0; i < MAP_WIDTH * MAP_HEIGHT; ++i)
         {
             Mat4 *model = new_mat4_id(1.f);
-            model = mat4_translate(model, &cube_positions[i]);
-            float angle = 20.f * i * timeValue;
-            model = mat4_rotate(model, TO_RAD(angle), &rotate_axis);
+            Mat4 *tmp;
+            tmp = mat4_translate(model, &map[i]);
+            free_mat4(model);
+            model = tmp;
             shader_set_mat4(shader, "model", model->arr);
             free_mat4(model);
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            cube_draw(&grass);           
+
+            Vec3 pos = map[i];
+            pos.y = map[i].y - 1;
+            
+            while (pos.y >= 0)
+            {
+                model = new_mat4_id(1.f);
+                Mat4 *tmp;
+                tmp = mat4_translate(model, &pos);
+                free_mat4(model);
+                model = tmp;
+                shader_set_mat4(shader, "model", model->arr);
+                free_mat4(model);
+
+                cube_draw(&dirt);
+                pos.y--;
+            }
+            
         }
-        glBindVertexArray(9);
+        glBindVertexArray(0);
 
         free_mat4(view);
         free_mat4(projection);
@@ -337,8 +268,8 @@ int main()
         glfwSwapBuffers(window); // avoid flickering
         glfwPollEvents(); // are events triggered?
     }
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &grass.VAO);
+    glDeleteBuffers(1, &grass.VBO);
     free_shader(shader);
 
     // clean
