@@ -47,7 +47,7 @@ void free_camera(Camera *camera);
 
 void camera_update_vectors(Camera *camera);
 
-Mat4 *camera_look_at(Camera *camera);
+Mat4 camera_look_at(Camera *camera);
 
 void camera_process_keyboard(Camera *camera, enum CameraMovement direction, float
         delta_time);

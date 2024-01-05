@@ -5,6 +5,6 @@
 
 # include "math/matrix.h"
 
-Mat4 *perspective(float fov, float aspect, float near, float far);
+Mat4 perspective(float fov, float aspect, float near, float far);
 
 # endif

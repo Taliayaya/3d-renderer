@@ -19,14 +19,14 @@ typedef struct Mat4
 
 // ==== Constructors ====
 
-Mat4 *new_mat4(void);
-Mat4 *new_mat4_id(float eigen);
+Mat4 new_mat4(void);
+Mat4 new_mat4_id(float eigen);
 
 void free_mat4(Mat4 *mat);
 
 // ==== Basic Operations ====
 
-Mat4 *mat4_dot(Mat4 *a, Mat4 *b);
+Mat4 mat4_dot(Mat4 *a, Mat4 *b);
 
 void print_mat4(Mat4 *mat);
 
@@ -34,15 +34,15 @@ void mat4_transpose(Mat4 *a);
 void mat4_negate(Mat4 *a);
 void mat4_transpose_negate(Mat4 *a);
 
-Vec4 *mat4_dot_vec4(Mat4 *a, Vec4 *b);
+Vec4 mat4_dot_vec4(Mat4 *a, Vec4 *b);
 
 
 
 // === Transformations ===
 
-Mat4 *mat4_translate(Mat4 *self, Vec3 *trans);
-Mat4 *mat4_rotate(Mat4 *self, float angle, Vec3 *axis);
-Mat4 *mat4_scale(Mat4 *self, Vec3 *trans);
+Mat4 mat4_translate(Mat4 *self, Vec3 *trans);
+Mat4 mat4_rotate(Mat4 *self, float angle, Vec3 *axis);
+Mat4 mat4_scale(Mat4 *self, Vec3 *trans);
 
 
 

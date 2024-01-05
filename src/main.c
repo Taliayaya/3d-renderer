@@ -157,7 +157,7 @@ int main()
     for (int i = 0; i < MAP_WIDTH; ++i)
         for (int j = 0; j < MAP_HEIGHT; ++j)
         {
-            float y = perlin2d(i, j, 0.07, 10);
+            float y = perlin2d(i, j, 0.1, 20);
             y = round(lerpf(y, 1, 20));
             map[i * MAP_HEIGHT + j] = (Vec3){i, y, j};
         }
@@ -213,14 +213,14 @@ int main()
 
         float timeValue = glfwGetTime();
 
-        Mat4 *view = camera_look_at(camera);
+        Mat4 view = camera_look_at(camera);
 
-        Mat4 *projection = perspective(TO_RAD(camera->zoom), (float)WIDTH / HEIGHT, .1f, 100.f);
+        Mat4 projection = perspective(TO_RAD(camera->zoom), (float)WIDTH / HEIGHT, .1f, 100.f);
 
 
         shader_use(shader);
-        shader_set_mat4(shader, "view", view->arr);
-        shader_set_mat4(shader, "projection", projection->arr);
+        shader_set_mat4(shader, "view", view.arr);
+        shader_set_mat4(shader, "projection", projection.arr);
 
         glActiveTexture(GL_TEXTURE0);
                 
@@ -230,13 +230,9 @@ int main()
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         for (int i = 0; i < MAP_WIDTH * MAP_HEIGHT; ++i)
         {
-            Mat4 *model = new_mat4_id(1.f);
-            Mat4 *tmp;
-            tmp = mat4_translate(model, &map[i]);
-            free_mat4(model);
-            model = tmp;
-            shader_set_mat4(shader, "model", model->arr);
-            free_mat4(model);
+            Mat4 model = new_mat4_id(1.f);
+            model = mat4_translate(&model, &map[i]);
+            shader_set_mat4(shader, "model", model.arr);
 
             cube_draw(&grass);           
 
@@ -246,12 +242,8 @@ int main()
             while (pos.y >= 0)
             {
                 model = new_mat4_id(1.f);
-                Mat4 *tmp;
-                tmp = mat4_translate(model, &pos);
-                free_mat4(model);
-                model = tmp;
-                shader_set_mat4(shader, "model", model->arr);
-                free_mat4(model);
+                model = mat4_translate(&model, &pos);
+                shader_set_mat4(shader, "model", model.arr);
 
                 cube_draw(&dirt);
                 pos.y--;
@@ -259,10 +251,6 @@ int main()
             
         }
         glBindVertexArray(0);
-
-        free_mat4(view);
-        free_mat4(projection);
-
 
         // call events and swap buffers
         glfwSwapBuffers(window); // avoid flickering
