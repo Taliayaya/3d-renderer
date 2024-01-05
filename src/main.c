@@ -19,6 +19,7 @@
 
 // models
 # include "../include/models/cube.h"
+# include "../include/models/light.h"
 
 // map
 # include "../include/perlin_noise.h"
@@ -36,6 +37,9 @@
 // shaders path
 # define VERTEX_SHADER_PATH "../shaders/shader.vs"
 # define FRAGMENT_SHADER_PATH "../shaders/shader.fs"
+
+# define LIGHT_VERTEX_SHADER_PATH "../shaders/light.vs"
+# define LIGHT_FRAGMENT_SHADER_PATH "../shaders/light.fs"
 
 // texture path
 # define TEXTURE_PATH "../textures/"
@@ -60,6 +64,8 @@ float delta_time = 0.f;
 float last_frame = 0.f;
 
 float fov = 45.f;
+
+Vec3 light_pos = {10, 30.f, 2.f};
 
 // called each time the window is resized
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
@@ -171,6 +177,9 @@ int main()
     // create, attach shaders to the program and link them
     Shader *shader = new_shader(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH);
 
+    Shader *light = new_shader(LIGHT_VERTEX_SHADER_PATH,
+                               LIGHT_FRAGMENT_SHADER_PATH);
+
         // register the event for resize
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     // register mouse event
@@ -191,6 +200,8 @@ int main()
     for (int i = CUBE_SIDE1; i <= CUBE_TOP; ++i)
         dirt.textures[i] = grass_bot.ID;
 
+    Cube lightCube = new_light();
+
     
     Vec3 rotate_axis = {1.f, .3f, .5f};
 
@@ -208,10 +219,12 @@ int main()
         processInput(window);
 
         // rendering commands
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         float timeValue = glfwGetTime();
+        float light_x = light_pos.x + 50 * sin(timeValue);
+        float light_y = light_pos.y + 50 * cos(timeValue);
 
         Mat4 view = camera_look_at(camera);
 
@@ -221,11 +234,31 @@ int main()
         shader_use(shader);
         shader_set_mat4(shader, "view", view.arr);
         shader_set_mat4(shader, "projection", projection.arr);
-
+        shader_set_vec3f(shader, "objectColor", 1.f, .5f, .31f);
+        shader_set_vec3f(shader, "lightColor", 1.f , 1.f, 1.f );
+        shader_set_vec3f(shader, "lightPos", light_x, light_y, light_pos.z);
+        shader_set_vec3f(shader, "viewPos", camera->transform.position.x,
+                                            camera->transform.position.y,
+                                            camera->transform.position.z);
         glActiveTexture(GL_TEXTURE0);
                 
         // copy vertices array to buffer for OGL
         //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        // light
+        Mat4 lmodel = new_mat4_id(1.f);
+        Vec3 light_postmp = {light_x, light_y, light_pos.x};
+        lmodel = mat4_translate(&lmodel, &light_postmp);
+        Vec3 lscale = {1.2, 1.2, 1.2};
+        lmodel = mat4_scale(&lmodel, &lscale);
+
+        shader_use(light);
+        shader_set_mat4(light, "view", view.arr);
+        shader_set_mat4(light, "projection", projection.arr);
+        shader_set_mat4(light, "model", lmodel.arr);
+
+        light_draw(&lightCube);
+
+        shader_use(shader);
 
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         for (int i = 0; i < MAP_WIDTH * MAP_HEIGHT; ++i)

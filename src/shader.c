@@ -145,6 +145,13 @@ void shader_set_vec4f(Shader *self, const char *name, float x, float y, float z,
     glUniform4f(location, x, y, z, w);
 }
 
+void shader_set_vec3f(Shader *self, const char *name, float x, float y, float
+        z)
+{
+    int location = glGetUniformLocation(self->ID, name);
+    glUniform3f(location, x, y, z);
+}
+
 void free_shader(Shader *self)
 {
     if (self == NULL)
