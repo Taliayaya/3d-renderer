@@ -65,7 +65,7 @@ float last_frame = 0.f;
 
 float fov = 45.f;
 
-Vec3 light_pos = {10, 30.f, 2.f};
+Vec3 light_pos = {30, 20.f, 30.f};
 
 // called each time the window is resized
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
@@ -219,27 +219,70 @@ int main()
         processInput(window);
 
         // rendering commands
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
 
         float timeValue = glfwGetTime();
-        float light_x = light_pos.x + 50 * sin(timeValue);
-        float light_y = light_pos.y + 50 * cos(timeValue);
+        float light_x = light_pos.x + 50 * sin(timeValue / 4);
+        float light_y = light_pos.y + 50 * cos(timeValue / 4);
 
+        float bg = light_y / (light_pos.y + 50);
+        if (bg < 0.1)
+            bg = 0.1;
+        glClearColor(bg *.5, bg * .8, bg * 1.2, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        
         Mat4 view = camera_look_at(camera);
 
         Mat4 projection = perspective(TO_RAD(camera->zoom), (float)WIDTH / HEIGHT, .1f, 100.f);
+
+        Vec3 light_diffuse = {.5f, .5f, .5f};
+        float maxLight = light_y / (light_pos.y + 30);
+        //light_diffuse.x = lerpf(clampf(light_y / maxLight, 0, 1), 0,
+        //        light_diffuse.x); 
+        //light_diffuse.y = lerpf(clampf(light_y / maxLight, 0, 1), 0,
+        //        light_diffuse.y);
+        //light_diffuse.z = lerpf(clampf(light_y / maxLight, 0, 1), 0,
+        //        light_diffuse.z);
+
+        Vec3 light_specular = {1.f, 1.f, 1.f};
+//        light_specular.x = lerpf(clampf(light_y / maxLight, 0, 1), 0,
+//                light_specular.x); 
+//        light_specular.y = lerpf(clampf(light_y / maxLight, 0, 1), 0,
+//                light_specular.y);
+//        light_specular.z = lerpf(clampf(light_y / maxLight, 0, 1), 0,
+//                light_specular.z);
+//
+        Vec3 light_color = {1.f, 1.f, 1.f};
+        
+        if (light_y < 30)
+        {
+            Vec3 orange = (Vec3){1.f, .2f, 0.f};
+            light_color.x = lerpf(light_y / 30, orange.x, light_color.x);
+            light_color.y = lerpf(light_y / 30, orange.y, light_color.y);
+            light_color.z = lerpf(light_y / 30, orange.z, light_color.z);
+        }
+        if (light_y < 0)
+            light_color = (Vec3){0.1f, 0.1f, 0.1f};
 
 
         shader_use(shader);
         shader_set_mat4(shader, "view", view.arr);
         shader_set_mat4(shader, "projection", projection.arr);
-        shader_set_vec3f(shader, "objectColor", 1.f, .5f, .31f);
-        shader_set_vec3f(shader, "lightColor", 1.f , 1.f, 1.f );
+        shader_set_vec3f(shader, "material.ambient", .11f, .11f, .11f);
+        shader_set_vec3f(shader, "material.diffuse", .3f, .3f, .3f);
+        shader_set_vec3f(shader, "material.specular", .5f, .5f, .5f);
+        shader_set_float(shader, "material.shininess", 32.f);
+        shader_set_vec3f(shader, "lightColor", light_color.x, light_color.y,
+                light_color.z);
         shader_set_vec3f(shader, "lightPos", light_x, light_y, light_pos.z);
         shader_set_vec3f(shader, "viewPos", camera->transform.position.x,
                                             camera->transform.position.y,
                                             camera->transform.position.z);
+        shader_set_vec3f(shader, "light.ambient", .2f, .2f, .2f);
+        shader_set_vec3f(shader, "light.diffuse", light_diffuse.x,
+                light_diffuse.y, light_diffuse.z);
+        shader_set_vec3f(shader, "light.specular", light_specular.x,
+                light_specular.y, light_specular.z);
         glActiveTexture(GL_TEXTURE0);
                 
         // copy vertices array to buffer for OGL
@@ -248,7 +291,7 @@ int main()
         Mat4 lmodel = new_mat4_id(1.f);
         Vec3 light_postmp = {light_x, light_y, light_pos.x};
         lmodel = mat4_translate(&lmodel, &light_postmp);
-        Vec3 lscale = {1.2, 1.2, 1.2};
+        Vec3 lscale = {1.5, 1.5, 1.5};
         lmodel = mat4_scale(&lmodel, &lscale);
 
         shader_use(light);
